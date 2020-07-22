@@ -3,4 +3,5 @@ from bson import ObjectId
 import os 
 
 client = MongoClient(os.getenv("MONGOURL"))
-print (client)
+db = client.sample_flask_mongo 
+print (db)
