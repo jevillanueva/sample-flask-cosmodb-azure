@@ -1,5 +1,6 @@
-from flask import Flask, render_template, request, url_for, Response
+from quart import Quart, render_template, request, url_for, Response
 from models.counter import addVisitorRoot, viewVisitorRoot
+from http import HTTPStatus
 import asyncio
 import os
 from botbuilder.core import (
@@ -13,7 +14,7 @@ bot = EchoBot()
 SETTINGS = BotFrameworkAdapterSettings(os.getenv("MicrosoftAppId",""),os.getenv("MicrosoftAppPassword",""))
 ADAPTER = BotFrameworkAdapter(SETTINGS)
 LOOP = asyncio.get_event_loop()
-app = Flask(__name__)
+app = Quart(__name__)
 
 @app.route("/")
 def hello():
@@ -23,29 +24,21 @@ def hello():
 
 
 @app.route("/api/messages", methods=["POST"])
-def messages():
+async def messages() -> Response:
+    print ("HERE")
     if "application/json" in request.headers["Content-Type"]:
-        body = request.json
+        body = await request.get_json()
     else:
-        return Response(status=415)
+        return Response(response="", status=HTTPStatus.UNSUPPORTED_MEDIA_TYPE)
     print (body)
     activity = Activity().deserialize(body)
     print (activity)
-    auth_header = (
-        request.headers["Authorization"] if "Authorization" in request.headers else ""
-    )
+    auth_header = request.headers["Authorization"] if "Authorization" in request.headers else ""
+    response = await ADAPTER.process_activity(activity, auth_header, bot.on_turn)
+    if response:
+        return  Response(response="",status=HTTPStatus.CREATED)
+    return  Response(response="",status=HTTPStatus.OK)
 
-    async def aux_func(turn_context):
-        await bot.on_turn(turn_context)
-
-    try:
-        task = LOOP.create_task(
-            ADAPTER.process_activity(activity, auth_header, aux_func)
-        )
-        LOOP.run_until_complete(task)
-        return Response(status=201)
-    except Exception as exception:
-        raise exception
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0')

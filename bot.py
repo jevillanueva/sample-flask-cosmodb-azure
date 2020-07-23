@@ -1,6 +1,3 @@
-from sys import exit
-
-
 class EchoBot:
     async def on_turn(self, context):
         # Check to see if this activity is an incoming message.
