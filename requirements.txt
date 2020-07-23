@@ -2,4 +2,3 @@ quart
 pymongo==3.10.1
 hypercorn
 botbuilder-core>=4.7.0
-asyncio
