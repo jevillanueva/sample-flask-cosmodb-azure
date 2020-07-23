@@ -13,12 +13,12 @@ bot = EchoBot()
 SETTINGS = BotFrameworkAdapterSettings(os.getenv("MicrosoftAppId",""),os.getenv("MicrosoftAppPassword",""))
 ADAPTER = BotFrameworkAdapter(SETTINGS)
 app = Quart(__name__)
-
+secretBot = os.getenv("BotSecretID","Secret")
 @app.route("/")
 def hello():
     addVisitorRoot()
     views = viewVisitorRoot()
-    return "<h1 style='color:blue'>Hello There! Views: {0}</h1>".format(views)
+    return "<h1 style='color:blue'>Hello There! Views: {0}</h1> <iframe src='https://webchat.botframework.com/embed/flask-sample-mongo-bot?s={1}'  style='min-width: 400px; width: 100%; min-height: 500px;'></iframe>".format(views,secretBot)
 
 
 @app.route("/api/messages", methods=["POST"])
