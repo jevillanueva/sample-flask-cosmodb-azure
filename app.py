@@ -1,7 +1,6 @@
 from quart import Quart, render_template, request, url_for, Response
 from models.counter import addVisitorRoot, viewVisitorRoot
 from http import HTTPStatus
-import asyncio
 import os
 from botbuilder.core import (
     BotFrameworkAdapter,
@@ -13,7 +12,6 @@ from bot import EchoBot
 bot = EchoBot()
 SETTINGS = BotFrameworkAdapterSettings(os.getenv("MicrosoftAppId",""),os.getenv("MicrosoftAppPassword",""))
 ADAPTER = BotFrameworkAdapter(SETTINGS)
-LOOP = asyncio.get_event_loop()
 app = Quart(__name__)
 
 @app.route("/")
