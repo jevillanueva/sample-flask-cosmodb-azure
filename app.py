@@ -1,7 +1,8 @@
-from quart import Quart, render_template, request, url_for, Response
+from flask import Flask, render_template, request, url_for, Response
 from models.counter import addVisitorRoot, viewVisitorRoot
 from http import HTTPStatus
 from twilio.twiml.messaging_response import MessagingResponse
+import asyncio
 import os
 from  directLineAPI import DirectLineAPI
 from botbuilder.core import (
@@ -14,8 +15,10 @@ from bot import EchoBot
 bot = EchoBot()
 SETTINGS = BotFrameworkAdapterSettings(os.getenv("MicrosoftAppId",""),os.getenv("MicrosoftAppPassword",""))
 ADAPTER = BotFrameworkAdapter(SETTINGS)
+LOOP = asyncio.get_event_loop()
+
 botDirectLine = DirectLineAPI(os.getenv("MicrosoftDirectLineToken",""))
-app = Quart(__name__)
+app = Flask(__name__)
 secretBot = os.getenv("BotSecretID","Secret")
 @app.route("/")
 def hello():
@@ -25,38 +28,35 @@ def hello():
 
 
 @app.route("/api/messages", methods=["POST"])
-async def messages() -> Response:
+def messages() -> Response:
     print ("HERE")
     if "application/json" in request.headers["Content-Type"]:
-        body = await request.get_json()
+        body = request.json
     else:
-        return Response(response="", status=HTTPStatus.UNSUPPORTED_MEDIA_TYPE)
+        return Response(status=HTTPStatus.UNSUPPORTED_MEDIA_TYPE)
     print (body)
     activity = Activity().deserialize(body)
     print (activity)
     auth_header = request.headers["Authorization"] if "Authorization" in request.headers else ""
-    response = await ADAPTER.process_activity(activity, auth_header, bot.on_turn)
-    if response:
-        return  Response(response="",status=HTTPStatus.CREATED)
-    return  Response(response="",status=HTTPStatus.OK)
+
+    async def aux_func(turn_context):
+        await bot.on_turn(turn_context)
+
+    try:
+        task = LOOP.create_task(
+            ADAPTER.process_activity(activity, auth_header, aux_func)
+        )
+        LOOP.run_until_complete(task)
+        return Response(status=HTTPStatus.CREATED)
+    except Exception as exception:
+        raise exception
 
 GOOD_BOY_URL = "https://images.unsplash.com/photo-1518717758536-85ae29035b6d?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=1350&q=80"
-@app.route("/whatsapp", methods=["GET", "POST"])
-async def reply_whatsapp():
+@app.route("/whatsapp", methods=["POST"])
+def reply_whatsapp():
     response = MessagingResponse()
-    # print ('#'*30)
-    # print (response)
-    # print ('#'*30)
-    # print (await request.get_data())
-    # print ('#'*30)
-    # print ()
-    # print ('#'*30)
-    # async for data in request.body:
-    #     print (data)
-    # print ('#'*30)
-    # msg = response.message("Thanks for the image. Here's one for you!")
-    # return str(response)
-    values = await request.values
+    print ('#'*30)
+    values = request.values
     print (values)
     num_media = int(values.get("NumMedia"))
     bodyText = values.get("Body")
@@ -75,6 +75,7 @@ async def reply_whatsapp():
     else:
         msg = response.message("Thanks for the image. Here's one for you!")
         msg.media(GOOD_BOY_URL)
+    print ('#'*30)
     print (msg)
     print (response)
     return str(response)

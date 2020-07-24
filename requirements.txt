@@ -1,5 +1,5 @@
-quart
+Flask
 pymongo==3.10.1
-hypercorn
+gunicorn
 botbuilder-core>=4.7.0
 twilio
